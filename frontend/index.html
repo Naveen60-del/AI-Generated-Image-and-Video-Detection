@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>AI Detection System</title>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <div class="container">
+
+        <h1>AI Detection System</h1>
+
+        <p class="subtitle">
+            Detect whether an image or video is Real or AI Generated
+        </p>
+
+
+        <!-- IMAGE DETECTION -->
+
+        <div class="upload-box">
+
+            <h3>Detect Image</h3>
+
+            <input
+                type="file"
+                id="imageInput"
+                accept="image/*"
+            >
+
+            <button onclick="detectImage()">
+                Detect Image
+            </button>
+
+        </div>
+
+
+        <!-- IMAGE PREVIEW -->
+
+        <div id="preview"></div>
+
+        <!-- IMAGE RESULT -->
+
+        <div id="result"></div>
+
+
+        <!-- VIDEO DETECTION -->
+
+        <div class="upload-box">
+
+            <h3>Detect Video</h3>
+
+            <input
+                type="file"
+                id="videoInput"
+                accept="video/*"
+            >
+
+            <button onclick="detectVideo()">
+                Detect Video
+            </button>
+
+        </div>
+
+
+        <!-- VIDEO RESULT -->
+
+        <!-- VIDEO PREVIEW -->
+
+<div id="videoPreview"></div>
+
+<!-- VIDEO RESULT -->
+
+<div id="videoResult"></div>
+
+    </div>
+
+
+    <script>
+
+        // ==========================================
+        // IMAGE DETECTION
+        // ==========================================
+
+        async function detectImage() {
+
+            const input =
+                document.getElementById("imageInput");
+
+            const resultDiv =
+                document.getElementById("result");
+
+            const previewDiv =
+                document.getElementById("preview");
+
+
+            if (input.files.length === 0) {
+
+                resultDiv.innerHTML =
+                    "<p>Please select an image.</p>";
+
+                return;
+            }
+
+
+            const file = input.files[0];
+
+
+            // Show image preview
+
+            const imageURL =
+                URL.createObjectURL(file);
+
+
+            previewDiv.innerHTML = `
+                <img
+                    src="${imageURL}"
+                    class="preview-image"
+                    alt="Selected Image"
+                >
+            `;
+
+
+            // Create form data
+
+            const formData = new FormData();
+
+            formData.append("file", file);
+
+
+            resultDiv.innerHTML = `
+                <div class="loading">
+                    Detecting image...
+                </div>
+            `;
+
+
+            try {
+
+                const response = await fetch(
+                    "http://127.0.0.1:8000/detect",
+                    {
+                        method: "POST",
+                        body: formData
+                    }
+                );
+
+
+                if (!response.ok) {
+
+                    throw new Error(
+                        "Server returned an error"
+                    );
+
+                }
+
+
+                const data =
+                    await response.json();
+
+
+                console.log(data);
+
+
+                const human =
+                    Number(data.probabilities.human);
+
+                const artificial =
+                    Number(data.probabilities.artificial);
+
+
+                let prediction;
+
+                let confidence;
+
+
+                if (artificial > human) {
+
+                    prediction = "AI GENERATED";
+
+                    confidence = artificial;
+
+                } else {
+
+                    prediction = "REAL / HUMAN";
+
+                    confidence = human;
+
+                }
+
+
+                resultDiv.innerHTML = `
+
+                    <div class="result-box">
+
+                        <h2>${prediction}</h2>
+
+                        <p class="confidence">
+
+                            Confidence:
+
+                            <strong>
+                                ${confidence.toFixed(2)}%
+                            </strong>
+
+                        </p>
+
+
+                        <div class="percentage-section">
+
+                            <p>
+
+                                Human:
+
+                                <strong>
+                                    ${human.toFixed(2)}%
+                                </strong>
+
+                            </p>
+
+
+                            <div class="progress">
+
+                                <div
+                                    class="human-bar"
+                                    style="width: ${human}%"
+                                ></div>
+
+                            </div>
+
+
+                            <p>
+
+                                Artificial:
+
+                                <strong>
+                                    ${artificial.toFixed(2)}%
+                                </strong>
+
+                            </p>
+
+
+                            <div class="progress">
+
+                                <div
+                                    class="ai-bar"
+                                    style="width: ${artificial}%"
+                                ></div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                `;
+
+            }
+
+
+            catch (error) {
+
+                console.error(error);
+
+
+                resultDiv.innerHTML = `
+
+                    <div class="error-box">
+
+                        <h3>
+                            Detection Failed
+                        </h3>
+
+                        <p>
+                            Could not connect to the
+                            detection server.
+                        </p>
+
+                    </div>
+
+                `;
+
+            }
+
+        }
+
+
+
+        // ==========================================
+        // VIDEO DETECTION
+        // ==========================================
+
+        async function detectVideo() {
+
+            const input =
+                document.getElementById("videoInput");
+
+            const resultDiv =
+                document.getElementById("videoResult");
+
+
+            if (input.files.length === 0) {
+
+                resultDiv.innerHTML =
+                    "<p>Please select a video.</p>";
+
+                return;
+            }
+
+
+            const file = input.files[0];
+
+
+            // Create form data
+
+            const formData = new FormData();
+
+            formData.append("file", file);
+
+
+            resultDiv.innerHTML = `
+
+                <div class="loading">
+
+                    Detecting video...
+
+                    <br>
+
+                    Please wait.
+
+                </div>
+
+            `;
+
+
+            try {
+
+                const response = await fetch(
+                    "http://127.0.0.1:8000/detect-video",
+                    {
+                        method: "POST",
+                        body: formData
+                    }
+                );
+
+
+                if (!response.ok) {
+
+                    throw new Error(
+                        "Video detection failed"
+                    );
+
+                }
+
+
+                const data =
+                    await response.json();
+
+
+                console.log(data);
+
+
+                const human =
+                    Number(data.probabilities.human);
+
+                const artificial =
+                    Number(data.probabilities.artificial);
+
+
+                let prediction;
+
+                let confidence;
+
+
+                if (artificial > human) {
+
+                    prediction =
+                        "AI GENERATED VIDEO";
+
+                    confidence = artificial;
+
+                } else {
+
+                    prediction =
+                        "REAL / HUMAN VIDEO";
+
+                    confidence = human;
+
+                }
+
+
+                resultDiv.innerHTML = `
+
+                    <div class="result-box">
+
+                        <h2>${prediction}</h2>
+
+
+                        <p class="confidence">
+
+                            Confidence:
+
+                            <strong>
+                                ${confidence.toFixed(2)}%
+                            </strong>
+
+                        </p>
+
+
+                        <div class="percentage-section">
+
+
+                            <p>
+
+                                Human:
+
+                                <strong>
+                                    ${human.toFixed(2)}%
+                                </strong>
+
+                            </p>
+
+
+                            <div class="progress">
+
+                                <div
+                                    class="human-bar"
+                                    style="width: ${human}%"
+                                ></div>
+
+                            </div>
+
+
+                            <p>
+
+                                Artificial:
+
+                                <strong>
+                                    ${artificial.toFixed(2)}%
+                                </strong>
+
+                            </p>
+
+
+                            <div class="progress">
+
+                                <div
+                                    class="ai-bar"
+                                    style="width: ${artificial}%"
+                                ></div>
+
+                            </div>
+
+
+                        </div>
+
+                    </div>
+
+                `;
+
+            }
+
+
+            catch (error) {
+
+                console.error(error);
+
+
+                resultDiv.innerHTML = `
+
+                    <div class="error-box">
+
+                        <h3>
+                            Video Detection Failed
+                        </h3>
+
+                        <p>
+                            Could not connect to the
+                            detection server.
+                        </p>
+
+                    </div>
+
+                `;
+
+            }
+
+        }
+
+    </script>
+
+</body>
+
+</html>
